@@ -165,7 +165,7 @@ resource "aws_instance" "db" {
 }
 
 resource "aws_instance" "backend" {
-  iam_instance_profile = aws_iam_instance_profile.backend_photos.name
+  iam_instance_profile   = aws_iam_instance_profile.backend_photos.name
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = var.instance_type
   key_name               = aws_key_pair.this.key_name
