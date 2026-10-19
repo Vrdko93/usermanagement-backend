@@ -52,15 +52,17 @@ pipeline {
         }
 
         stage('Provision servers (Terraform)') {
-            when { expression { params.ACTION == 'apply' } }
-            steps {
-                dir(env.TF_DIR) {
-                    sh 'terraform apply -auto-approve -no-color'
-                }
-            }
+    when { expression { params.ACTION == 'apply' } }
+    steps {
+        dir(env.TF_DIR) {
+            sh 'terraform plan -out=tfplan -no-color'
+            input message: 'Review the Terraform plan. Create the AWS resources?'
+            sh 'terraform apply -no-color tfplan'
         }
+    }
+}
 
-        stage('Ansible collections') {
+       stage('Ansible collections') {
             when { expression { params.ACTION == 'apply' } }
             steps {
                 dir(env.ANSIBLE_DIR) {
