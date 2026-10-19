@@ -1,14 +1,21 @@
 # Where the application code comes from
-backend_repo: https://github.com/neerajbalodi/usermanagement-backend.git
-frontend_repo: https://github.com/neerajbalodi/usermanagement-frontend.git
+backend_repo: https://github.com/Vrdko93/usermanagement-backend.git
+frontend_repo: https://github.com/Vrdko93/usermanagement-frontend.git
 app_branch: main
 
 # The Linux user that owns and runs the apps
 app_user: ubuntu
+
+- name: Require database password
+  ansible.builtin.assert:
+    that:
+      - db_password | length > 0
+    fail_msg: "DB_PASSWORD must be supplied by Jenkins."
+  no_log: true
 
 # Database settings (must match the backend's application.properties defaults)
 db_name: userdb
 db_user: appuser
 # Comes from the Jenkins credential "um-db-password" (environment variable DB_PASSWORD).
 # Falls back to the Day 1 default when you run Ansible by hand.
-db_password: "{{ lookup('ansible.builtin.env', 'DB_PASSWORD') | default('appuser123', true) }}"
+db_password: "{{ lookup('ansible.builtin.env', 'DB_PASSWORD') }}"
