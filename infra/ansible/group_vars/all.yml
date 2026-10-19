@@ -6,12 +6,6 @@ app_branch: main
 # The Linux user that owns and runs the apps
 app_user: ubuntu
 
-- name: Require database password
-  ansible.builtin.assert:
-    that:
-      - db_password | length > 0
-    fail_msg: "DB_PASSWORD must be supplied by Jenkins."
-  no_log: true
 
 # Database settings (must match the backend's application.properties defaults)
 db_name: userdb
