@@ -1,0 +1,10 @@
+.git
+.gitignore
+.idea
+.vscode
+*.log
+*.pem
+.env
+infra/
+target/*
+!target/user-management-0.0.1-SNAPSHOT.jar
