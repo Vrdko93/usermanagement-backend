@@ -151,7 +151,7 @@ resource "aws_security_group" "db" {
 # --- EC2 instances -------------------------------------------------
 
 resource "aws_instance" "db" {
-  ami                    = data.aws_ami.ubuntu.id
+  ami = "ami-08ded8f0046ffc971"
   instance_type          = var.instance_type
   key_name               = aws_key_pair.this.key_name
   vpc_security_group_ids = [aws_security_group.db.id]
@@ -166,7 +166,7 @@ resource "aws_instance" "db" {
 
 resource "aws_instance" "backend" {
   iam_instance_profile   = aws_iam_instance_profile.backend_photos.name
-  ami                    = data.aws_ami.ubuntu.id
+  ami = "ami-08ded8f0046ffc971"
   instance_type          = var.instance_type
   key_name               = aws_key_pair.this.key_name
   vpc_security_group_ids = [aws_security_group.backend.id]
@@ -180,7 +180,7 @@ resource "aws_instance" "backend" {
 }
 
 resource "aws_instance" "frontend" {
-  ami                    = data.aws_ami.ubuntu.id
+  ami = "ami-08ded8f0046ffc971"
   instance_type          = var.instance_type
   key_name               = aws_key_pair.this.key_name
   vpc_security_group_ids = [aws_security_group.frontend.id]
