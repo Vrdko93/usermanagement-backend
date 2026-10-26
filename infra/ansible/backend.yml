@@ -29,6 +29,50 @@
         update_cache: true
         lock_timeout: 600
 
+    # Redis cache for Spring Boot
+    - name: Install Redis
+      ansible.builtin.apt:
+        name: redis-server
+        state: present
+        update_cache: true
+        lock_timeout: 600
+
+    - name: Bind Redis to localhost only
+      ansible.builtin.lineinfile:
+        path: /etc/redis/redis.conf
+        regexp: '^bind '
+        line: 'bind 127.0.0.1 -::1'
+      notify: Restart Redis
+
+    - name: Limit Redis memory to 128 MB
+      ansible.builtin.lineinfile:
+        path: /etc/redis/redis.conf
+        regexp: '^#?\s*maxmemory\s+'
+        line: 'maxmemory 128mb'
+      notify: Restart Redis
+
+    - name: Configure Redis cache eviction
+      ansible.builtin.lineinfile:
+        path: /etc/redis/redis.conf
+        regexp: '^#?\s*maxmemory-policy\s+'
+        line: 'maxmemory-policy allkeys-lru'
+      notify: Restart Redis
+
+    - name: Enable and start Redis
+      ansible.builtin.systemd_service:
+        name: redis-server
+        state: started
+        enabled: true
+
+    - name: Apply Redis configuration changes
+      ansible.builtin.meta: flush_handlers
+
+    - name: Verify Redis responds locally
+      ansible.builtin.command: redis-cli -h 127.0.0.1 ping
+      register: redis_ping
+      changed_when: false
+      failed_when: redis_ping.stdout != 'PONG'
+
     - name: Create the app folder
       ansible.builtin.file:
         path: "{{ app_dir }}"
@@ -107,6 +151,11 @@
       until: api_check.status == 200
 
   handlers:
+    - name: Restart Redis
+      ansible.builtin.systemd_service:
+        name: redis-server
+        state: restarted
+
     - name: Restart backend
       ansible.builtin.systemd_service:
         name: user-management-backend
