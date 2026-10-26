@@ -16,6 +16,8 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.Cache;
 
 @Service
 public class PhotoService {
@@ -25,10 +27,15 @@ public class PhotoService {
     private final String bucket;
     private static final long MAX_SIZE = 5L * 1024 * 1024;
     private static final Set<String> TYPES = Set.of("image/jpeg", "image/png", "image/webp");
+    private final CacheManager cacheManager;
 
-    public PhotoService(UserRepository users, S3Client s3, S3Presigner presigner,
-                        @Value("${photo.bucket:}") String bucket) {
-        this.users = users; this.s3 = s3; this.presigner = presigner; this.bucket = bucket;
+    public PhotoService(UserRepository users, S3Client s3, S3Presigner presigner, @Value("${photo.bucket:}") String bucket,
+                    CacheManager cacheManager) {
+    	this.users = users;
+    	this.s3 = s3;
+    	this.presigner = presigner;
+    	this.bucket = bucket;
+    	this.cacheManager = cacheManager;
     }
     private User user(Long id) {
         return users.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
@@ -53,8 +60,20 @@ public class PhotoService {
         String key = "profiles/" + id + "/" + UUID.randomUUID() + "." + ext;
         s3.putObject(PutObjectRequest.builder().bucket(bucket).key(key).contentType(file.getContentType()).build(), RequestBody.fromBytes(bytes));
         String old = u.getPhotoKey();
-        try { u.setPhotoKey(key); users.save(u); }
-        catch (RuntimeException ex) { s3.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(key).build()); throw ex; }
+        try {
+           u.setPhotoKey(key);
+           users.save(u);
+        } catch (RuntimeException ex) {
+          s3.deleteObject(
+             DeleteObjectRequest.builder()
+                 .bucket(bucket)
+                 .key(key)
+                 .build()
+          );
+         throw ex;
+       }
+
+       invalidateUsersCache();
         if (old != null) s3.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(old).build());
     }
     public String url(Long id) {
@@ -66,7 +85,13 @@ public class PhotoService {
     public void delete(Long id) {
         configured(); User u = user(id); String key = u.getPhotoKey();
         if (key == null) return;
-        u.setPhotoKey(null); users.save(u);
+        u.setPhotoKey(null); users.save(u); invalidateUsersCache();
         s3.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(key).build());
     }
+    private void invalidateUsersCache() {
+    	Cache cache = cacheManager.getCache("users");
+    	if (cache != null) {
+        cache.clear();
+    }
+}
 }
